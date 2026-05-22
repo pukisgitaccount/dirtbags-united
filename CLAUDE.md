@@ -40,6 +40,7 @@ React 19 SPA with React Router v7. The main layout in `src/App.tsx` wraps all ro
 - `/` → `MapPage` (main feature)
 - `/logbook`, `/favorites`, `/profile` → stub pages
 - `/styleguide` → component showcase at `StylePage`
+- `/admin` - admin page to verify requests, check uploads etc.
 
 **Map stack:** MapLibre GL via `maplibre-react-components` (`RMap`, `RGradientMarker`, `RPopup`). The map style uses the OpenMapTiles public endpoint. Marker click state is local (`useState` in `MapLibre.tsx`). Crags are currently hardcoded in `MapPage.tsx` — Supabase integration is not wired to the map yet.
 
@@ -58,9 +59,14 @@ React 19 SPA with React Router v7. The main layout in `src/App.tsx` wraps all ro
 
 Minimal Express 5 server at `src/index.ts`. Listens on `PORT` env var or 8000. Has only a root `GET /` route. Uses ES modules (`"type": "module"`), runs via `tsx` in dev with `nodemon` watching `src/`.
 
+#### Login/Auth
+
+JWT for logging in. Password encrypting by
+
 ### Database
 
 Using supabase DB with migration schema.
+Rate Limiting of 100 req per minute since low effort servers
 
 ## Key Conventions
 
@@ -73,3 +79,4 @@ Using supabase DB with migration schema.
 
 - Keep answers short and simple
 - dont show changed code in the CLI to save tokens
+- dont make big code changes, one function at a time

@@ -6,6 +6,7 @@ import MapSearchBar from "../components/MapSearchBar";
 import type { Crag } from "../domain/crag";
 
 import { mapCragFromDatabaseRow } from "../services/crag";
+import { mapRouteFromDatabaseRow } from "../services/route";
 
 const center: [number, number] = [11.1, 49.9];
 
@@ -17,13 +18,23 @@ export default function MapPage() {
 
   useEffect(() => {
     const fetchCrags = async () => {
-      const { data, error } = await supabase.from("crags").select("*");
+      const { data, error } = await supabase
+        .from("crags")
+        .select("*, routes(*)");
       if (error) {
         setFetchError(error.message);
         //reset in case of error to avoid showing stale data
         setFetchedCrags([]);
       } else {
-        setFetchedCrags(data.map(mapCragFromDatabaseRow));
+        setFetchedCrags(
+          data.map((row) => {
+            const { routes, ...cragRow } = row;
+            return mapCragFromDatabaseRow(
+              cragRow,
+              routes.map((r) => mapRouteFromDatabaseRow(r)),
+            );
+          }),
+        );
         setFetchError(null);
       }
     };

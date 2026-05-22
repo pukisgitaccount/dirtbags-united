@@ -1,4 +1,5 @@
 import type { Tick } from "../domain/tick";
+import Stat from "./Stat";
 
 const tickTypeColors = {
   Rotpunkt: "bg-red-500/20 text-red-600 inset-ring inset-ring-red-500/20",
@@ -18,7 +19,7 @@ export default function TicklistEntry({ tick }: { tick: Tick }) {
       <div className="flex items-center gap-2 mb-2">
         <h3 className="text-stone-900 font-medium flex-1">{tick.routeName}</h3>
         <span className="px-2 py-1 bg-stone-200 text-stone-900 rounded-full text-xs font-medium">
-          {tick.grade}
+          <Stat>{tick.grade}</Stat>
         </span>
         <span
           className={`px-2 py-1 rounded-full text-xs font-medium ${tickTypeColors[tick.tickType]}`}
@@ -28,11 +29,13 @@ export default function TicklistEntry({ tick }: { tick: Tick }) {
       </div>
 
       <p className="text-xs text-stone-500">
-        {new Date(tick.date).toLocaleDateString("de-DE", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        })}{" "}
+        <Stat>
+          {new Date(tick.date).toLocaleDateString("de-DE", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          })}
+        </Stat>{" "}
         • {tick.cragName}
       </p>
     </div>

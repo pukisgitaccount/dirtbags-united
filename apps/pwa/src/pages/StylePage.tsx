@@ -1,8 +1,12 @@
 import type { ReactNode } from "react";
 import type { Tick } from "../domain/tick";
+import type { Route } from "../domain/route";
+import type { Crag } from "../domain/crag";
 
 import Button from "../components/Button";
 import TicklistEntry from "../components/TicklistEntry";
+import CragRoutesDisplay from "../components/CragRoutesDisplay";
+import CragPopup from "../components/CragPopup";
 
 const sampleEntry: Tick = {
   id: 1,
@@ -67,6 +71,38 @@ const sampleEntries: Tick[] = [
   sampleEntry6,
 ];
 
+const sampleRoutes: Route[] = [
+  { id: "r1", name: "Wand der Träume", grade: "7a", cragId: "c1" },
+  { id: "r2", name: "Nordkante", grade: "6c+", cragId: "c1" },
+  { id: "r3", name: "Morgenwind", grade: "7b", cragId: "c1" },
+  { id: "r4", name: "Sonnenriss", grade: "6b", cragId: "c1" },
+  { id: "r5", name: "Abendrot", grade: "6a+", cragId: "c1" },
+  { id: "r6", name: "Steinerne Hand", grade: "7a", cragId: "c1" },
+  { id: "r7", name: "Falkenflug", grade: "6c", cragId: "c1" },
+  { id: "r8", name: "Mondsichel", grade: "7a+", cragId: "c1" },
+  { id: "r9", name: "Risskante", grade: "6b", cragId: "c1" },
+  { id: "r10", name: "Drachenkamm", grade: "8a", cragId: "c1" },
+  { id: "r11", name: "Stille Verschneidung", grade: "5c", cragId: "c1" },
+  { id: "r12", name: "Heißer Tanz", grade: "7b+", cragId: "c1" },
+];
+
+const sampleCrag: Crag = {
+  id: "c1",
+  name: "Herzogenreuther Wand",
+  latitude: 49.74,
+  longitude: 11.36,
+  approachTime: 15,
+  routes: sampleRoutes,
+};
+
+const sampleCragEmpty: Crag = {
+  id: "c2",
+  name: "Neuentdeckter Block",
+  latitude: 49.81,
+  longitude: 11.42,
+  routes: [],
+};
+
 type ShowcaseSection = {
   title: string;
   description: string;
@@ -93,6 +129,27 @@ const showcaseSections: ShowcaseSection[] = [
         {sampleEntries.map((entry) => (
           <TicklistEntry key={entry.id} tick={entry} />
         ))}
+      </div>
+    ),
+  },
+  {
+    title: "Crag Routes Display",
+    description:
+      "Verteilung der Routen eines Crags nach Schwierigkeitsgrad als Bar-Chart.",
+    content: (
+      <div className="max-w-2xl">
+        <CragRoutesDisplay routes={sampleRoutes} />
+      </div>
+    ),
+  },
+  {
+    title: "Crag Popup",
+    description:
+      "Kompaktes Map-Popup mit Stats-Header und Mini-Verteilung. Rechts: Empty-State ohne erfasste Routen.",
+    content: (
+      <div className="flex flex-wrap items-start gap-6">
+        <CragPopup crag={sampleCrag} />
+        <CragPopup crag={sampleCragEmpty} />
       </div>
     ),
   },
