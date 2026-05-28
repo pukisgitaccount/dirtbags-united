@@ -32,7 +32,7 @@ function LoginScreen({ onSent }: { onSent: (email: string) => void }) {
   const [error, setError] = useState<string | null>(null);
   const valid = email.length > 0 && email.includes("@") && email.includes(".");
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!valid || sending) return;
     setSending(true);
@@ -85,7 +85,7 @@ function LoginScreen({ onSent }: { onSent: (email: string) => void }) {
           id="email"
           type="email"
           autoComplete="email"
-          placeholder="acab@b161.de"
+          placeholder="acab@161.de"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full rounded-full border border-stone-200 bg-white px-5 py-3.5 text-base text-stone-900 shadow-sm placeholder:text-stone-400 focus:border-orange-400 focus:outline-none focus:ring-4 focus:ring-orange-400/20"

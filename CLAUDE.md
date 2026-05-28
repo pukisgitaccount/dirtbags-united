@@ -67,6 +67,10 @@ Currently a placeholder: a minimal Express 5 server at `src/index.ts` with only 
 
 Handled entirely by Supabase Auth (JWT, sessions, password hashing, OAuth) via `supabase-js` in the PWA — no custom auth endpoints. Authorization is enforced by Postgres RLS keyed on `auth.uid()`.
 
+**Reading auth state in the PWA:** Use the `useSession()` hook (`src/hooks/useSession.ts`). It reads the initial session via `supabase.auth.getSession()` and stays in sync via `supabase.auth.onAuthStateChange` (with `subscription.unsubscribe()` cleanup), returning `{ session, loading }`. `loading` guards against flashing the logged-out UI before the initial read resolves. `ProfilePage` uses it to gate between `<Login />` and the profile view. The login flow lives in `src/components/Login.tsx` (magic link via `signInWithOtp`, plus anonymous via `signInAnonymously`).
+
+**Planned:** When more pages need the session simultaneously (logbook, favorites, write permissions), promote `useSession` to a Context provider — read the session once at the top and pass it down, instead of each component running its own listener. Keep the `useSession()` call signature so call sites don't change.
+
 ### Database
 
 Supabase Postgres, schema managed via migrations in `supabase/migrations/`. Existing tables: `crags`, `routes` — both with RLS enabled (public SELECT policies), `created_by` referencing `auth.users`, `updated_at` triggers (moddatetime) and indexes. No write (INSERT/UPDATE/DELETE) policies yet, so writes are currently blocked by RLS. Tables still missing: `sectors` (referenced by `routes.sector_id`), `ticks`, `favorites`, `profiles`. Rate-limiting target: ~100 req/min (low-effort servers).
