@@ -73,7 +73,7 @@ Handled entirely by Supabase Auth (JWT, sessions, password hashing, OAuth) via `
 
 ### Database
 
-Supabase Postgres, schema managed via migrations in `supabase/migrations/`. Existing tables: `crags`, `routes` — both with RLS enabled (public SELECT policies), `created_by` referencing `auth.users`, `updated_at` triggers (moddatetime) and indexes. No write (INSERT/UPDATE/DELETE) policies yet, so writes are currently blocked by RLS. Tables still missing: `sectors` (referenced by `routes.sector_id`), `ticks`, `favorites`, `profiles`. Rate-limiting target: ~100 req/min (low-effort servers).
+Supabase Postgres, schema managed via migrations in `supabase/migrations/`. Applying a migration hits one of two separate databases: `supabase start` + `supabase migration up` targets the **local** sandbox and **requires Docker**; `supabase db push` targets the **hosted Cloud project** (the live DB the app uses) and needs no Docker, just `supabase login`/`link`. Test auth-related changes (e.g. triggers on `auth.users`) locally first — a failing such trigger blocks real sign-ups. Generate types with `--local` or `--linked` to match where the migration was applied. See `README.md` → Database for the full workflow. Existing tables: `crags`, `routes` — both with RLS enabled (public SELECT policies), `created_by` referencing `auth.users`, `updated_at` triggers (moddatetime) and indexes. No write (INSERT/UPDATE/DELETE) policies yet, so writes are currently blocked by RLS. Tables still missing: `sectors` (referenced by `routes.sector_id`), `ticks`, `favorites`, `profiles`. Rate-limiting target: ~100 req/min (low-effort servers).
 
 ## Key Conventions
 
