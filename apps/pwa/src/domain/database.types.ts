@@ -79,19 +79,37 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          disciplines: string[] | null
+          grade_system_boulder: string
+          grade_system_routes: string
           id: string
+          instagram: string | null
+          is_private: boolean
+          location: string | null
           updated_at: string
           username: string | null
         }
         Insert: {
           created_at?: string
+          disciplines?: string[] | null
+          grade_system_boulder?: string
+          grade_system_routes?: string
           id: string
+          instagram?: string | null
+          is_private?: boolean
+          location?: string | null
           updated_at?: string
           username?: string | null
         }
         Update: {
           created_at?: string
+          disciplines?: string[] | null
+          grade_system_boulder?: string
+          grade_system_routes?: string
           id?: string
+          instagram?: string | null
+          is_private?: boolean
+          location?: string | null
           updated_at?: string
           username?: string | null
         }

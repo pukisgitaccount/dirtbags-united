@@ -75,6 +75,27 @@ Handled entirely by Supabase Auth (JWT, sessions, password hashing, OAuth) via `
 
 Supabase Postgres, schema managed via migrations in `supabase/migrations/`. Applying a migration hits one of two separate databases: `supabase start` + `supabase migration up` targets the **local** sandbox and **requires Docker**; `supabase db push` targets the **hosted Cloud project** (the live DB the app uses) and needs no Docker, just `supabase login`/`link`. Test auth-related changes (e.g. triggers on `auth.users`) locally first — a failing such trigger blocks real sign-ups. Generate types with `--local` or `--linked` to match where the migration was applied. See `README.md` → Database for the full workflow. Existing tables: `crags`, `routes` — both with RLS enabled (public SELECT policies), `created_by` referencing `auth.users`, `updated_at` triggers (moddatetime) and indexes. No write (INSERT/UPDATE/DELETE) policies yet, so writes are currently blocked by RLS. Tables still missing: `sectors` (referenced by `routes.sector_id`), `ticks`, `favorites`, `profiles`. Rate-limiting target: ~100 req/min (low-effort servers).
 
+### Profile settings & auto-levels (planned)
+
+Migration `20260530000000_add_profile_settings.sql` adds to `profiles`:
+`grade_system_routes` (french/uiaa/yds), `grade_system_boulder` (v_scale/font),
+`disciplines text[]`, `location`, `instagram`, `is_private`. Design doc:
+`../docs/plans/2026-05-30-profile-settings.md`.
+
+Still to build (deferred):
+
+- **`grades` ref table** `(discipline, system, label, rank)` — shared `rank` per
+  discipline drives both comparison (`max(rank)`) and conversion
+  (`label → rank → label`). Seed all common grades.
+- **Auto-levels** via view/RPC `get_profile_levels(user_id)` from `ticks → routes →
+  grades` (do NOT store on `profiles`). Max Rotpunkt = max rank, Tick ∈
+  {Rotpunkt,Flash,Onsight}; Max Flash = {Flash,Onsight}; Max Onsight = {Onsight};
+  Max Boulder = same on boulder grades.
+- **Discipline** boulder vs route derived from grade (V/Font = boulder), since
+  `routes` has no `type` column.
+- **`ticks` table** must exist first (Tick types: Rotpunkt, Flash, Onsight, Toprope, Go).
+- **`is_private`** needs an RLS change (current SELECT policy is public).
+
 ## Key Conventions
 
 - Tailwind v4 is configured entirely via the Vite plugin — no config file.
