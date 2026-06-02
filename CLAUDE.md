@@ -4,10 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Community-based climbing app to create and share topos (climbing route guides) for free. Built as an npm workspace monorepo with two apps:
+Community-based climbing app to create and share topos (climbing route guides) for free. Built as an npm workspace monorepo:
 
 - `apps/pwa` — React/TypeScript/Vite frontend (PWA)
-- `apps/api` — Express/TypeScript backend
+- `apps/api` — Express/TypeScript backend (placeholder — see Architecture)
+
+**Backend strategy:** Supabase is the backend (Backend-as-a-Service). The PWA talks directly to Supabase for auth, CRUD, and storage; authorization is enforced via Postgres RLS, not application code. Auth is handled entirely by Supabase Auth — there are no custom auth endpoints. A custom server (`apps/api` or a Supabase Edge Function) is reserved only for work that needs secret keys or heavy compute — currently just the planned image→AI→topo pipeline.
 
 ## Development Commands
 
@@ -42,9 +44,9 @@ React 19 SPA with React Router v7. The main layout in `src/App.tsx` wraps all ro
 - `/styleguide` → component showcase at `StylePage`
 - `/admin` - admin page to verify requests, check uploads etc.
 
-**Map stack:** MapLibre GL via `maplibre-react-components` (`RMap`, `RGradientMarker`, `RPopup`). The map style uses the OpenMapTiles public endpoint. Marker click state is local (`useState` in `MapLibre.tsx`). Crags are currently hardcoded in `MapPage.tsx` — Supabase integration is not wired to the map yet.
+**Map stack:** MapLibre GL via `maplibre-react-components` (`RMap`, `RGradientMarker`, `RPopup`). The map style uses the OpenMapTiles public endpoint. Marker click state is local (`useState` in `MapLibre.tsx`). Crags are fetched live from Supabase in `MapPage.tsx` (`supabase.from("crags").select("*, routes(*)")`) and passed to `MapLibre`.
 
-**Supabase:** Client is initialized in `apps/pwa/utils/supabase.ts` using `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` env vars (see `apps/pwa/.env`). The client is not yet used in any component.
+**Supabase:** Typed client (`createClient<Database>`) is initialized in `apps/pwa/src/utils/supabase.ts` using `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` env vars (see `apps/pwa/.env`). Used in `MapPage` to load crags+routes.
 
 **Domain models** live in `src/domain/`:
 
@@ -53,20 +55,46 @@ React 19 SPA with React Router v7. The main layout in `src/App.tsx` wraps all ro
 - `Route` — individual climb with grade and optional sector
 - `Tick` — a logged ascent with tick type (`Rotpunkt`, `Flash`, `Onsight`, `Toprope`, `Go`)
 
+`src/domain/database.types.ts` holds the Supabase-generated DB types. `src/services/` maps DB rows (snake_case) to domain models (camelCase) — e.g. `mapCragFromDatabaseRow`, `mapRouteFromDatabaseRow`. Keep these mappers in sync when the schema changes.
+
 **Styling:** Tailwind CSS v4 (via `@tailwindcss/vite` plugin — no `tailwind.config.js` needed). Uses the stone color palette throughout.
 
 ### Backend (`apps/api`)
 
-Minimal Express 5 server at `src/index.ts`. Listens on `PORT` env var or 8000. Has only a root `GET /` route. Uses ES modules (`"type": "module"`), runs via `tsx` in dev with `nodemon` watching `src/`.
+Currently a placeholder: a minimal Express 5 server at `src/index.ts` with only a root `GET /` route (returns "Hello, world!"). Listens on `PORT` env var or 8000. ES modules (`"type": "module"`), runs via `tsx` + `nodemon` in dev. Not used by the app yet. When the image→AI→topo pipeline is built, decide between an Express worker here vs. a Supabase Edge Function (prefer Edge Function unless the job needs long runtimes/queues). Any server only ever *verifies* the Supabase-issued JWT — it never issues auth.
 
-#### Login/Auth
+#### Auth
 
-JWT for logging in. Password encrypting by
+Handled entirely by Supabase Auth (JWT, sessions, password hashing, OAuth) via `supabase-js` in the PWA — no custom auth endpoints. Authorization is enforced by Postgres RLS keyed on `auth.uid()`.
+
+**Reading auth state in the PWA:** Use the `useSession()` hook (`src/hooks/useSession.ts`). It reads the initial session via `supabase.auth.getSession()` and stays in sync via `supabase.auth.onAuthStateChange` (with `subscription.unsubscribe()` cleanup), returning `{ session, loading }`. `loading` guards against flashing the logged-out UI before the initial read resolves. `ProfilePage` uses it to gate between `<Login />` and the profile view. The login flow lives in `src/components/Login.tsx` (magic link via `signInWithOtp`, plus anonymous via `signInAnonymously`).
+
+**Planned:** When more pages need the session simultaneously (logbook, favorites, write permissions), promote `useSession` to a Context provider — read the session once at the top and pass it down, instead of each component running its own listener. Keep the `useSession()` call signature so call sites don't change.
 
 ### Database
 
-Using supabase DB with migration schema.
-Rate Limiting of 100 req per minute since low effort servers
+Supabase Postgres, schema managed via migrations in `supabase/migrations/`. Applying a migration hits one of two separate databases: `supabase start` + `supabase migration up` targets the **local** sandbox and **requires Docker**; `supabase db push` targets the **hosted Cloud project** (the live DB the app uses) and needs no Docker, just `supabase login`/`link`. Test auth-related changes (e.g. triggers on `auth.users`) locally first — a failing such trigger blocks real sign-ups. Generate types with `--local` or `--linked` to match where the migration was applied. See `README.md` → Database for the full workflow. Existing tables: `crags`, `routes` — both with RLS enabled (public SELECT policies), `created_by` referencing `auth.users`, `updated_at` triggers (moddatetime) and indexes. No write (INSERT/UPDATE/DELETE) policies yet, so writes are currently blocked by RLS. Tables still missing: `sectors` (referenced by `routes.sector_id`), `ticks`, `favorites`, `profiles`. Rate-limiting target: ~100 req/min (low-effort servers).
+
+### Profile settings & auto-levels (planned)
+
+Migration `20260530000000_add_profile_settings.sql` adds to `profiles`:
+`grade_system_routes` (french/uiaa/yds), `grade_system_boulder` (v_scale/font),
+`disciplines text[]`, `location`, `instagram`, `is_private`. Design doc:
+`../docs/plans/2026-05-30-profile-settings.md`.
+
+Still to build (deferred):
+
+- **`grades` ref table** `(discipline, system, label, rank)` — shared `rank` per
+  discipline drives both comparison (`max(rank)`) and conversion
+  (`label → rank → label`). Seed all common grades.
+- **Auto-levels** via view/RPC `get_profile_levels(user_id)` from `ticks → routes →
+  grades` (do NOT store on `profiles`). Max Rotpunkt = max rank, Tick ∈
+  {Rotpunkt,Flash,Onsight}; Max Flash = {Flash,Onsight}; Max Onsight = {Onsight};
+  Max Boulder = same on boulder grades.
+- **Discipline** boulder vs route derived from grade (V/Font = boulder), since
+  `routes` has no `type` column.
+- **`ticks` table** must exist first (Tick types: Rotpunkt, Flash, Onsight, Toprope, Go).
+- **`is_private`** needs an RLS change (current SELECT policy is public).
 
 ## Key Conventions
 

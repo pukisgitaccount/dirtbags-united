@@ -73,16 +73,30 @@ Using Supabase als DB. Schema-Änderungen passieren über Migrationen (file-base
 ### Migrationen
 
 - Neue Migration: `supabase migration new <name>` (legt eine leere SQL-Datei mit Timestamp an)
-- Lokal anwenden / pushen: `supabase db push` (schickt alle noch nicht angewendeten Migrationen an die remote DB)
 - Migrationen sind nach dem Push **immutable** — Änderungen am Schema = neue Migration, nicht alte Datei editieren
+
+#### Zwei Wege, eine Migration anzuwenden: lokal (Docker) vs. Cloud
+
+Es gibt zwei getrennte Datenbanken, und der Befehl entscheidet, welche getroffen wird:
+
+| Befehl | Trifft welche DB? | Docker nötig? |
+| --- | --- | --- |
+| `supabase start` + `supabase migration up` | **lokale** Sandbox auf dem eigenen Rechner | **ja** |
+| `supabase db push` | das **echte, gehostete** Cloud-Projekt (dieselbe DB wie die laufende App) | **nein** |
+
+- **`supabase start`** baut eine komplette lokale Supabase-Kopie (Postgres, Auth, Storage) in **Docker**-Containern. Ohne laufendes Docker schlägt es fehl (`Cannot connect to the Docker daemon`). Zum gefahrlosen Testen — `supabase db reset` setzt sie jederzeit zurück.
+- **`supabase db push`** braucht kein Docker, sondern nur `supabase login` + `supabase link`, und schreibt die Migrationen direkt in die Cloud-DB. **Vorsicht:** trifft das Live-Projekt; ein fehlerhafter Trigger auf `auth.users` kann echte Anmeldungen blockieren. Schema-Änderungen rund um Auth daher am besten erst lokal (Docker) testen.
 
 ### TypeScript-Types aus dem DB-Schema
 
 Die Datei `apps/pwa/src/domain/database.types.ts` wird **automatisch generiert** und enthält die exakten Row-/Insert-/Update-Types aller Tabellen. Nicht von Hand bearbeiten — bei Schema-Änderungen neu generieren:
 
 ```bash
-supabase gen types typescript --linked > apps/pwa/src/domain/database.types.ts
+supabase gen types typescript --linked > apps/pwa/src/domain/database.types.ts   # gegen Cloud-DB
+supabase gen types typescript --local  > apps/pwa/src/domain/database.types.ts   # gegen lokale Docker-DB
 ```
+
+`--linked` liest das Schema der Cloud-DB, `--local` das der lokalen Docker-Instanz — passend dazu, wo du die Migration angewendet hast.
 
 ## Domain Layer (`apps/pwa/src/domain/`)
 

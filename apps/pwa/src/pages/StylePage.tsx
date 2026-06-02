@@ -117,6 +117,7 @@ const showcaseSections: ShowcaseSection[] = [
       <div className="flex flex-wrap gap-3">
         <Button label="Primary" variant="primary" />
         <Button label="Secondary" variant="secondary" />
+        <Button label="Ghost" variant="ghost" />
       </div>
     ),
   },

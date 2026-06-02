@@ -2,6 +2,7 @@ import Navbar from "./components/Navbar";
 import { Route, Routes } from "react-router-dom";
 import StylePage from "./pages/StylePage";
 import MapPage from "./pages/MapPage";
+import ProfilePage from "./pages/ProfilePage";
 
 function LogbookPage() {
   return <h1 className="text-2xl font-semibold text-stone-800">Logbook</h1>;
@@ -9,10 +10,6 @@ function LogbookPage() {
 
 function FavoritesPage() {
   return <h1 className="text-2xl font-semibold text-stone-800">Favorites</h1>;
-}
-
-function ProfilePage() {
-  return <h1 className="text-2xl font-semibold text-stone-800">Profile</h1>;
 }
 
 function App() {
